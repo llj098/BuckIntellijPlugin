@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ddmlib-r16">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/ddmlib-r16.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
