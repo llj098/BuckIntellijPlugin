@@ -23,6 +23,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.xdebugger.DefaultDebugProcessHandler
 import java.util.ArrayList
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 //{
@@ -30,13 +31,24 @@ import java.util.concurrent.TimeUnit
 //}
 //AndroidDebugBridge.init(false)
 var adbInitialized = false
-fun getAdb(): AndroidDebugBridge {
+fun getAdb(p: Project): AndroidDebugBridge {
     if (!adbInitialized){
         AndroidDebugBridge.init(true)
         adbInitialized = true
     }
-    return AndroidDebugBridge.createBridge("/Users/anatoly/Applications/android-sdk-macosx/platform-tools/adb", false)
+    return AndroidDebugBridge.createBridge(getAdbPath(p), false)
 }
+
+private fun getAdbPath(p: Project): String {
+    val props = p.getBaseDir().findChild("local.properties")
+    assert(props != null)
+    val properties = Properties()
+    properties.load(props.getInputStream())
+    val sdkDir = properties.getProperty("sdk.dir")
+    return "$sdkDir/platform-tools/adb"
+}
+
+
 /**
  * Created by anatoly on 12.04.15.
  */
@@ -84,18 +96,31 @@ public class MyProfileState (val project: Project, val e: ExecutionEnvironment, 
     }
 
     private fun attach(res: DefaultExecutionResult) {
-        val adb = getAdb()
-
+        val adb = getAdb(project)
+        var it = 0;
+        while (adb.getDevices().isEmpty() && it < 30){
+            Thread.sleep(100)
+            it++
+        }
         val ds = adb.getDevices()
-        assert (ds.size () > 0)
-
-        val packageName = cfg.state.packageName
-
-        val clients = ds[0].getClients()
-        if (clients.isEmpty()){
+        if (ds.isEmpty()){
             return
         }
-        val client :Client = ds[0].getClient(packageName)//todo
+
+
+        val packageName = cfg.state.packageName
+        it = 0
+        while(ds[0].getClient(packageName) == null && it < 30){
+            Thread.sleep(100)
+            it++
+        }
+
+        val client = ds[0].getClient(packageName)
+        if (client == null){
+            return
+        }
+        println("attaching to $client")
+//        val client :Client = ds[0].getClient(packageName)//todo
 
 
         val con = RemoteConnection(true, "localhost", "${client.getDebuggerListenPort()}", false)
@@ -113,7 +138,7 @@ public class MyProfileState (val project: Project, val e: ExecutionEnvironment, 
 
     private fun startApplicationAndAttach(res: DefaultExecutionResult) {
         val cmd = ArrayList (
-                listOf("adb",
+                listOf(getAdbPath(project),
                         "shell", "am", "start", "-D", "-n", "${cfg.state.packageName}/${ cfg.state.activityName}"))
         if (0 == executeCommand(cmd)) {
             attach(res)

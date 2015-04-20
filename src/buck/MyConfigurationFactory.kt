@@ -11,9 +11,9 @@ import javax.swing.Icon
 class BuckConfigurationType : ConfigurationType {
     val factory = MyConfigurationFactory(this)
 
-    init {
-        getAdb()//todo ftw
-    }
+//    init {
+//        getAdb()//todo ftw
+//    }
     override fun getConfigurationFactories(): Array<out ConfigurationFactory>? {
         return array(factory)
     }
